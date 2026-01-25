@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a198b6933a234447ba1709e67da8ff7, type: 3}
+  m_Name: Batton 1
+  m_EditorClassIdentifier: 
+  itemName: Batton
+  icon: {fileID: 8381225099064421809, guid: ed89ecfb48b9ae94998e7a47ad57cf23, type: 3}
+  description: 
+  isStackable: 0
+  itemTypeTag: Food
+  healthRestoreAmount: 25
