@@ -4,7 +4,7 @@ public class FoodItemHandler : MonoBehaviour
 {
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Alpha4))
+        if (Input.GetKeyDown(key: KeyCode.Alpha4))
         {
             TryUseFirstFood();
         }

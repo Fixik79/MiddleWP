@@ -15,7 +15,7 @@ public class nventoryPanelToggle : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.I))
+        if (Input.GetKeyDown(key: KeyCode.I))
         {
             isVisible = !isVisible;
             panelGroup.alpha = isVisible ? 1 : 0;
