@@ -1,54 +1,86 @@
+п»ї
 using UnityEngine;
-using UnityEngine.UI; // Для UI-промпта
+using UnityEngine.UI;
+using Photon.Pun;
 
-public class CollisionBehavior : MonoBehaviour
+public class CollisionBehavior : MonoBehaviourPun
 {
-    // Массив способностей (через GetComponents)
-    private ICollisionAbility[] _collisionAbilities; // Предполагаю, что у вас есть ICollisionAbility; если нет, оставьте пустым
+    // РЎРїРѕСЃРѕР±РЅРѕСЃС‚Рё РїСЂРё РєРѕР»Р»РёР·РёСЏС… (РµСЃР»Рё РёСЃРїРѕР»СЊР·СѓРµС€СЊ)
+    private ICollisionAbility[] _collisionAbilities;
 
-    // Поле для текущего предмета в зоне триггера
+    // РўРµРєСѓС‰РёР№ РїСЂРµРґРјРµС‚ РІ Р·РѕРЅРµ РїРѕРґР±РѕСЂР°
     private ItemPickup currentPickup;
     private bool canPick = false;
 
-    // UI-промпт (создайте Text на Canvas и перетащите сюда в Inspector)
-    [SerializeField] private Text pickUpPrompt;
+    // РРЅРІРµРЅС‚Р°СЂСЊ Р­РўРћР“Рћ РёРіСЂРѕРєР°
+    private PlayerInventory inventory;
+
+    // UI-РїСЂРѕРјРїС‚ (РёС‰РµРј РІ runtime)
+    private Text pickUpPrompt;
 
     private void Start()
     {
-        _collisionAbilities = GetComponents<ICollisionAbility>();
-        if (PlayerInventory.Instance == null)
+        // рџ”’ РўРћР›Р¬РљРћ Р»РѕРєР°Р»СЊРЅС‹Р№ РёРіСЂРѕРє
+        if (!photonView.IsMine)
+            return;
+
+        // РџРѕР»СѓС‡Р°РµРј РёРЅРІРµРЅС‚Р°СЂСЊ
+        inventory = GetComponent<PlayerInventory>();
+        if (inventory == null)
         {
-            Debug.LogError("CollisionBehavior: PlayerInventory.Instance не найден!");
+            Debug.LogError("CollisionBehavior: PlayerInventory РЅРµ РЅР°Р№РґРµРЅ РЅР° РёРіСЂРѕРєРµ!");
+            enabled = false;
+            return;
         }
-        // Скрываем промпт по умолчанию
-        if (pickUpPrompt != null) pickUpPrompt.enabled = false;
+
+        _collisionAbilities = GetComponents<ICollisionAbility>();
+
+        // рџ”Ґ РР©Р•Рњ UI РќРђ CANVAS
+        GameObject promptObj = GameObject.Find("PickUpPrompt");
+        if (promptObj != null)
+        {
+            pickUpPrompt = promptObj.GetComponent<Text>();
+            pickUpPrompt.enabled = false;
+        }
+        else
+        {
+            Debug.LogError("CollisionBehavior: PickUpPrompt РЅРµ РЅР°Р№РґРµРЅ РЅР° Canvas!");
+        }
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        // Проверяем, если это предмет
-        var itemPickup = other.GetComponent<ItemPickup>();
-        if (itemPickup != null && PlayerInventory.Instance != null)
-        {
-            currentPickup = itemPickup;
-            canPick = true;
-            // Показываем промпт
-            if (pickUpPrompt != null) pickUpPrompt.enabled = true;
-        }
+        if (!photonView.IsMine)
+            return;
+
+        ItemPickup itemPickup = other.GetComponent<ItemPickup>();
+        if (itemPickup == null)
+            return;
+
+        currentPickup = itemPickup;
+        canPick = true;
+
+        if (pickUpPrompt != null)
+            pickUpPrompt.enabled = true;
     }
 
     private void OnTriggerExit(Collider other)
     {
-        var itemPickup = other.GetComponent<ItemPickup>();
-        if (itemPickup == currentPickup)
-        {
-            canPick = false;
-            currentPickup = null;
-            // Скрываем промпт
-            if (pickUpPrompt != null) pickUpPrompt.enabled = false;
-        }
-        // Все еще вызываем способности при выходе, если нужно (оставил как есть)
-        if (_collisionAbilities.Length > 0)
+        if (!photonView.IsMine)
+            return;
+
+        ItemPickup itemPickup = other.GetComponent<ItemPickup>();
+        if (itemPickup != currentPickup)
+            return;
+
+        currentPickup = null;
+        canPick = false;
+
+        if (pickUpPrompt != null)
+            pickUpPrompt.enabled = false;
+
+        // СЃРїРѕСЃРѕР±РЅРѕСЃС‚Рё (РµСЃР»Рё СЂРµР°Р»СЊРЅРѕ РЅСѓР¶РЅС‹)
+        if (_collisionAbilities != null)
         {
             foreach (var ability in _collisionAbilities)
             {
@@ -59,14 +91,21 @@ public class CollisionBehavior : MonoBehaviour
 
     private void Update()
     {
-        // Проверяем нажатие E, если предмет в зоне и можно подобрать
-        if (canPick && Input.GetKeyDown(KeyCode.E) && PlayerInventory.Instance != null)
+        if (!photonView.IsMine)
+            return;
+
+        if (!canPick || currentPickup == null)
+            return;
+
+        if (Input.GetKeyDown(KeyCode.E))
         {
-            currentPickup.PickUp(PlayerInventory.Instance);
+            currentPickup.PickUp(inventory);
+
             canPick = false;
             currentPickup = null;
-            // Скрываем промпт (хотя объект уже уничтожен)
-            if (pickUpPrompt != null) pickUpPrompt.enabled = false;
+
+            if (pickUpPrompt != null)
+                pickUpPrompt.enabled = false;
         }
     }
 }

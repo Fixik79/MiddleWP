@@ -1,53 +1,62 @@
 using UnityEngine;
+using Photon.Pun;
 
-public class Health : MonoBehaviour, IDamageable
+public class Health : MonoBehaviourPun, IDamageable
 {
-    // Максимальное здоровье
     [SerializeField] private float maxHealth = 100f;
-    // Текущее здоровье
     [SerializeField] private float currentHealth;
 
     private void Awake()
     {
-        // Устанавливаем текущее здоровье на максимальное значение
-        currentHealth = maxHealth;
+        if (photonView.IsMine)
+            currentHealth = maxHealth;
     }
+
     public void SetMaxHealth(float newMaxHealth)
     {
-        maxHealth = newMaxHealth;
+        if (!photonView.IsMine) return;
+
+        photonView.RPC(nameof(RPC_SetMaxHealth), RpcTarget.All, newMaxHealth);
+    }
+
+    [PunRPC]
+    private void RPC_SetMaxHealth(float value)
+    {
+        maxHealth = value;
         currentHealth = maxHealth;
-        Debug.Log($"Максимальное здоровье установлено: {maxHealth}");
     }
 
     public void TakeDamage(float damage)
     {
-        if (currentHealth <= 0)
-        {
-            // Если текущее здоровье уже 0 или меньше, ничего не делаем
-            return;
-        }
-        // Уменьшаем текущее здоровье на величину урона
-        currentHealth -= damage;
-        Debug.Log($"Текущее здоровье: {currentHealth}");
+        if (!photonView.IsMine) return;
 
-        // Убеждаемся, что здоровье не опускается ниже 0
-        if (currentHealth < 0)
-        {
-            currentHealth = 0;
-        }
-
-        // Проверка на смерть
-        if (currentHealth <= 0)
-        {
-            Die();
-        }
+        photonView.RPC(nameof(RPC_TakeDamage), RpcTarget.All, damage);
     }
 
-    public void Heal(float damage)
+    [PunRPC]
+    private void RPC_TakeDamage(float damage)
     {
-        // Увеличиваем  текущее здоровье на величину урона
-        currentHealth += damage;
-        Debug.Log($"Текущее здоровье: {currentHealth}");
+        if (currentHealth <= 0) return;
+
+        currentHealth -= damage;
+        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
+
+        if (currentHealth <= 0)
+            Die();
+    }
+
+    public void Heal(float value)
+    {
+        if (!photonView.IsMine) return;
+
+        photonView.RPC(nameof(RPC_Heal), RpcTarget.All, value);
+    }
+
+    [PunRPC]
+    private void RPC_Heal(float value)
+    {
+        currentHealth += value;
+        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
     }
 
     private void Die()

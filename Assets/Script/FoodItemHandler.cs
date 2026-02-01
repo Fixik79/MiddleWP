@@ -1,11 +1,28 @@
-using UnityEngine;
-using UnityEngine.InputSystem;
+﻿using UnityEngine;
+using Photon.Pun;
 
-public class FoodItemHandler : MonoBehaviour
+public class FoodItemHandler : MonoBehaviourPun
 {
+    private PlayerInventory inventory;
+
+    private void Start()
+    {
+        // 🔒 только для владельца
+        if (!photonView.IsMine)
+            return;
+
+        inventory = GetComponent<PlayerInventory>();
+
+        if (inventory == null)
+            Debug.LogError("FoodItemHandler: PlayerInventory не найден!");
+    }
+
     private void Update()
     {
-        if (Input.GetKeyDown(key: KeyCode.Alpha4))
+        if (!photonView.IsMine)
+            return;
+
+        if (Input.GetKeyDown(KeyCode.Alpha4))
         {
             TryUseFirstFood();
         }
@@ -13,16 +30,20 @@ public class FoodItemHandler : MonoBehaviour
 
     private void TryUseFirstFood()
     {
-        var inventory = PlayerInventory.Instance;
-        for (int i = 0; i < inventory.GetItems().Length; i++)
+        Item[] items = inventory.GetItems();
+
+        for (int i = 0; i < items.Length; i++)
         {
-            var item = inventory.GetItems()[i];
+            Item item = items[i];
+
+            // тут можно дополнительно проверить тег "Food"
             if (item != null && item is IUsableItem)
             {
                 if (inventory.UseItem(i))
                     return;
             }
         }
-        Debug.Log("��� ��� ��� �������������");
+
+        Debug.Log("Нет еды для использования");
     }
 }

@@ -1,31 +1,38 @@
-using UnityEngine;
+п»їusing UnityEngine;
+using Photon.Pun;
 
-public class ItemPickup : MonoBehaviour
+public class ItemPickup : MonoBehaviourPun
 {
-    // Массив возможных предметов (в Inspector: добавьте Item-ассеты)
-    public Item[] items;
+    [SerializeField] private Item[] items;
+    private bool isPickedUp = false;
 
     public void PickUp(PlayerInventory inventory)
     {
-        if (items.Length > 0)
-        {
-            // Рандомный выбор
-            Item randomItem = items[Random.Range(0, items.Length)];
+        if (inventory == null || isPickedUp)
+            return;
 
-            // Пробуем добавить в инвентарь
-            if (inventory.AddItem(randomItem))
-            {
-                // Только если успешно — уничтожаем объект
-                Destroy(gameObject);
-            }
-            else
-            {
-                Debug.Log("Не удалось подобрать предмет: инвентарь полон.");
-            }
-        }
-        else
+        if (!inventory.photonView.IsMine)
+            return;
+
+        if (items == null || items.Length == 0)
+            return;
+
+        Item randomItem = items[Random.Range(0, items.Length)];
+
+        if (inventory.AddItem(randomItem))
         {
-            Debug.LogWarning("ItemPickup: Нет предметов в массиве!");
+            isPickedUp = true;
+
+            if (PhotonNetwork.IsMasterClient)
+                PhotonNetwork.Destroy(gameObject);
+            else
+                photonView.RPC(nameof(RequestDestroy), RpcTarget.MasterClient);
         }
+    }
+
+    [PunRPC]
+    private void RequestDestroy()
+    {
+        PhotonNetwork.Destroy(gameObject);
     }
 }

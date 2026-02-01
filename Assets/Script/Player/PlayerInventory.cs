@@ -1,43 +1,41 @@
 
-using System;
 using UnityEngine;
 using UnityEngine.Events;
-using static UnityEditor.Progress;
+using Photon.Pun;
 
-public class PlayerInventory : MonoBehaviour
+public class PlayerInventory : MonoBehaviourPun
 {
-    public static PlayerInventory Instance;
-
     [SerializeField] private int inventorySize = 10;
     public Item[] inventoryItems;
 
     public UnityEvent OnItemAdded;
-    //Добавлено
     public UnityEvent OnItemUsed;
+    internal static object Instance;
 
     private void Awake()
     {
-        if (Instance == null)
-            Instance = this;
-        else
-            Destroy(gameObject);
-
-        DontDestroyOnLoad(gameObject);
-
         inventoryItems = new Item[inventorySize];
     }
 
+    // ======================
+    // Добавление предмета
+    // ======================
     public bool AddItem(Item itemToAdd)
     {
+        if (!photonView.IsMine)
+            return false;
+
         for (int i = 0; i < inventoryItems.Length; i++)
         {
             if (inventoryItems[i] == null)
             {
                 inventoryItems[i] = itemToAdd;
 
-                // Логируем предмет и его тег
-                string tagDisplay = string.IsNullOrEmpty(itemToAdd.itemTypeTag) ? "неизвестный тип" : itemToAdd.itemTypeTag;
-                Debug.Log($"Предмет \"{itemToAdd.itemName}\" с типом \"{tagDisplay}\" добавлен в слот {i}");
+                string tagDisplay = string.IsNullOrEmpty(itemToAdd.itemTypeTag)
+                    ? "неизвестный тип"
+                    : itemToAdd.itemTypeTag;
+
+                Debug.Log($"[{photonView.ViewID}] Добавлен предмет \"{itemToAdd.itemName}\" в слот {i}");
 
                 OnItemAdded?.Invoke();
                 return true;
@@ -48,8 +46,14 @@ public class PlayerInventory : MonoBehaviour
         return false;
     }
 
+    // ======================
+    // Использование предмета
+    // ======================
     public bool UseItem(int index)
     {
+        if (!photonView.IsMine)
+            return false;
+
         if (index < 0 || index >= inventoryItems.Length)
         {
             Debug.LogWarning("Неверный индекс предмета");
@@ -65,18 +69,15 @@ public class PlayerInventory : MonoBehaviour
 
         if (item is IUsableItem usableItem)
         {
-            // Передаем игрока как пользователя
-            usableItem.Use(gameObject);
-            // Удаляем предмет после использования
-            inventoryItems[index] = null; 
+            usableItem.Use(gameObject); // gameObject = владелец
+
+            inventoryItems[index] = null;
             OnItemUsed?.Invoke();
             return true;
         }
-        else
-        {
-            Debug.Log($"Предмет {item.itemName} нельзя использовать");
-            return false;
-        }
+
+        Debug.Log($"Предмет {item.itemName} нельзя использовать");
+        return false;
     }
 
     public Item[] GetItems()

@@ -1,33 +1,52 @@
 using UnityEngine;
+using Photon.Pun;
 
 public class InventoryUI : MonoBehaviour
 {
-    public Transform itemsParent;
-    public Slot[] slots;
+    [SerializeField] private Transform itemsParent;
+    private Slot[] slots;
+
+    private PlayerInventory playerInventory;
 
     private void Start()
     {
-        PlayerInventory.Instance.OnItemAdded.AddListener(UpdateUI);
-        // Подписались на событие
-        PlayerInventory.Instance.OnItemUsed.AddListener(UpdateUI); 
+        // Находим локального игрока
+        foreach (var player in FindObjectsOfType<PlayerInventory>())
+        {
+            if (player.photonView.IsMine)
+            {
+                playerInventory = player;
+                break;
+            }
+        }
+
+        if (playerInventory == null)
+        {
+            Debug.LogError("InventoryUI: локальный PlayerInventory не найден!");
+            return;
+        }
+
         slots = itemsParent.GetComponentsInChildren<Slot>();
+
+        playerInventory.OnItemAdded.AddListener(UpdateUI);
+        playerInventory.OnItemUsed.AddListener(UpdateUI);
+
         UpdateUI();
     }
 
     public void UpdateUI()
     {
-        Item[] items = PlayerInventory.Instance.GetItems();
+        if (playerInventory == null)
+            return;
+
+        Item[] items = playerInventory.GetItems();
 
         for (int i = 0; i < slots.Length; i++)
         {
             if (i < items.Length && items[i] != null)
-            {
                 slots[i].AddItem(items[i]);
-            }
             else
-            {
                 slots[i].ClearSlot();
-            }
         }
     }
 }
